@@ -33,6 +33,12 @@ const features = [
   { label: '40-hour battery', value: 'Go further' },
 ]
 
+const testimonials = [
+  { name: 'Sofia L.', detail: 'Everyday listener', rating: 5, quote: 'Noise cancellation turns my commute into a quiet, personal listening room.' },
+  { name: 'James R.', detail: 'Studio enthusiast', rating: 5, quote: 'They feel weightless through a full workday, and the sound is beautifully clear.' },
+  { name: 'Amara K.', detail: 'Aura One listener', rating: 5, quote: 'The fit is lovely, the controls are intuitive, and every detail feels considered.' },
+]
+
 export default function Storefront({ initialPaymentComplete = false }: { initialPaymentComplete?: boolean }) {
   const [step, setStep] = useState<Step>(initialPaymentComplete ? 'checkout' : 'discover')
   const [finish, setFinish] = useState<'Midnight' | 'Chalk'>('Midnight')
@@ -217,6 +223,29 @@ export default function Storefront({ initialPaymentComplete = false }: { initial
             </aside>
           </div>
         )}
+      </section>
+
+      <section className="reviews-section" aria-labelledby="reviews-title">
+        <div className="reviews-heading">
+          <div>
+            <p className="eyebrow"><span className="eyebrow-dot" /> NOTES FROM THE LISTENING ROOM</p>
+            <h2 id="reviews-title">What listeners are saying</h2>
+          </div>
+        </div>
+        <div className="reviews-grid">
+          {testimonials.map((review) => (
+            <figure className="review-card" key={review.name}>
+              <span className="review-stars" role="img" aria-label={`${review.rating} out of 5 stars`}>
+                {Array.from({ length: review.rating }, (_, index) => <Star key={index} aria-hidden="true" />)}
+              </span>
+              <blockquote className="review-quote">{review.quote}</blockquote>
+              <figcaption className="review-author">
+                <strong>{review.name}</strong>
+                <span>{review.detail}</span>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
       </section>
 
       <footer className="store-footer">
