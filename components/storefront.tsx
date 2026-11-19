@@ -105,7 +105,7 @@ export default function Storefront({ initialPaymentComplete = false }: { initial
           <div className="stage discover-stage" key="discover">
             <div className="hero-copy">
               <p className="eyebrow"><span className="eyebrow-dot" /> SOUND, REFINED — EST. 2026</p>
-              <h1>A quieter kind<br />of <span>powerful.</span></h1>
+              <h1>Welcome to My Store</h1>
               <p className="hero-description">Meet Aura One. Immersive sound, considered down to the last detail. Made to move with you.</p>
               <div className="hero-actions">
                 <button className="button-primary" onClick={() => goTo('product')}>
