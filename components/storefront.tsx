@@ -8,15 +8,16 @@ import {
   ArrowRight,
   ArrowUpRight,
   Check,
-  Headphones,
   LockKeyhole,
   PackageCheck,
   ShieldCheck,
   Sparkles,
+  Star,
   Volume2,
 } from 'lucide-react'
 import { PRODUCTS } from '@/lib/products'
 import StripeCheckout from '@/components/stripe-checkout'
+import { createCheckoutSession } from '@/lib/stripe-actions'
 
 type Step = 'discover' | 'product' | 'checkout'
 
@@ -32,15 +33,41 @@ const features = [
   { label: '40-hour battery', value: 'Go further' },
 ]
 
-export default function Storefront() {
-  const [step, setStep] = useState<Step>('discover')
+export default function Storefront({ initialPaymentComplete = false }: { initialPaymentComplete?: boolean }) {
+  const [step, setStep] = useState<Step>(initialPaymentComplete ? 'checkout' : 'discover')
   const [finish, setFinish] = useState<'Midnight' | 'Chalk'>('Midnight')
-  const [complete, setComplete] = useState(false)
+  const [complete, setComplete] = useState(initialPaymentComplete)
+  const [clientSecret, setClientSecret] = useState<string | null>(null)
+  const [checkoutLoading, setCheckoutLoading] = useState(false)
+  const [checkoutError, setCheckoutError] = useState('')
   const product = PRODUCTS[0]
+  const productImage = finish === 'Chalk' ? '/aura-headphones-chalk.png' : '/aura-headphones.png'
 
   function goTo(nextStep: Step) {
     setComplete(false)
     setStep(nextStep)
+  }
+
+  function chooseFinish(nextFinish: 'Midnight' | 'Chalk') {
+    setFinish(nextFinish)
+    setClientSecret(null)
+  }
+
+  async function goToCheckout() {
+    setComplete(false)
+    setStep('checkout')
+    setCheckoutError('')
+    if (clientSecret || checkoutLoading) return
+
+    setCheckoutLoading(true)
+    try {
+      const secret = await createCheckoutSession(product.id, finish, crypto.randomUUID())
+      setClientSecret(secret)
+    } catch {
+      setCheckoutError('We could not open secure checkout. Please try again.')
+    } finally {
+      setCheckoutLoading(false)
+    }
   }
 
   return (
@@ -65,7 +92,7 @@ export default function Storefront() {
           ))}
         </nav>
 
-        <button className="header-bag" onClick={() => goTo('checkout')} aria-label="Go to checkout">
+        <button className="header-bag" onClick={goToCheckout} aria-label="Go to checkout">
           <span className="bag-count">01</span>
           <ArrowUpRight aria-hidden="true" />
         </button>
@@ -78,7 +105,7 @@ export default function Storefront() {
           <div className="stage discover-stage" key="discover">
             <div className="hero-copy">
               <p className="eyebrow"><span className="eyebrow-dot" /> SOUND, REFINED — EST. 2026</p>
-              <h1>A quieter kind<br />of <span>powerful.</span></h1>
+              <h1>Welcome to My Store</h1>
               <p className="hero-description">Meet Aura One. Immersive sound, considered down to the last detail. Made to move with you.</p>
               <div className="hero-actions">
                 <button className="button-primary" onClick={() => goTo('product')}>
@@ -115,13 +142,13 @@ export default function Storefront() {
             <div className="product-gallery">
               <div className="gallery-label"><span>01 — THE OBJECT</span><span>01 / 04</span></div>
               <div className="gallery-image-wrap">
-                <Image src="/aura-headphones.png" alt="Aura One wireless headphones in a studio setting" fill priority sizes="(max-width: 900px) 100vw, 48vw" className="headphone-image" />
+                <Image src={productImage} alt={`Aura One wireless headphones in ${finish} finish`} fill priority sizes="(max-width: 900px) 100vw, 48vw" className="headphone-image" />
                 <span className="gallery-stamp">MONOFORM<br />STUDIO SERIES</span>
               </div>
               <div className="gallery-thumbnails" aria-label="Product views">
-                <button className="thumb-active" aria-label="View headphones from the front"><Image src="/aura-headphones.png" alt="" fill sizes="64px" /></button>
-                <button onClick={() => setFinish('Chalk')} aria-label="Select Chalk finish"><span className="thumb-surface chalk-surface" /></button>
-                <button onClick={() => setFinish('Midnight')} aria-label="Select Midnight finish"><span className="thumb-surface midnight-surface" /></button>
+                <button className="thumb-active" aria-label={`View Aura One in ${finish} finish`}><Image src={productImage} alt="" fill sizes="64px" /></button>
+                <button onClick={() => chooseFinish('Chalk')} aria-label="Select Chalk finish"><span className="thumb-surface chalk-surface" /></button>
+                <button onClick={() => chooseFinish('Midnight')} aria-label="Select Midnight finish"><span className="thumb-surface midnight-surface" /></button>
                 <span className="thumbnail-note">A closer look at every detail <ArrowRight aria-hidden="true" /></span>
               </div>
             </div>
@@ -131,20 +158,20 @@ export default function Storefront() {
               <p className="eyebrow product-eyebrow"><span className="eyebrow-dot" /> THE LISTENING ERA</p>
               <h1>Aura One</h1>
               <p className="product-subtitle">Over-ear wireless headphones</p>
-              <div className="rating-line"><span aria-label="5 out of 5 stars">★★★★★</span><span>4.9 <i>·</i> 128 reviews</span><span className="availability"><span /> In stock</span></div>
+              <div className="rating-line"><span className="rating-stars" aria-label="5 out of 5 stars"><Star /><Star /><Star /><Star /><Star /></span><span>4.9 <i>·</i> 128 reviews</span><span className="availability"><span /> In stock</span></div>
               <p className="product-price">${(product.priceInCents / 100).toFixed(2)} <span>USD</span></p>
               <p className="product-description">Hear what you&apos;ve been missing. Adaptive noise cancellation meets remarkably natural, high-resolution sound in a silhouette designed for all-day comfort.</p>
               <div className="finish-selector">
                 <div><span className="selector-label">FINISH</span><span className="selected-finish">{finish}</span></div>
                 <div className="finish-options" role="group" aria-label="Choose a finish">
-                  <button className={`finish-swatch swatch-midnight ${finish === 'Midnight' ? 'selected' : ''}`} onClick={() => setFinish('Midnight')} aria-label="Midnight finish" aria-pressed={finish === 'Midnight'}><span /></button>
-                  <button className={`finish-swatch swatch-chalk ${finish === 'Chalk' ? 'selected' : ''}`} onClick={() => setFinish('Chalk')} aria-label="Chalk finish" aria-pressed={finish === 'Chalk'}><span /></button>
+                  <button className={`finish-swatch swatch-midnight ${finish === 'Midnight' ? 'selected' : ''}`} onClick={() => chooseFinish('Midnight')} aria-label="Midnight finish" aria-pressed={finish === 'Midnight'}><span /></button>
+                  <button className={`finish-swatch swatch-chalk ${finish === 'Chalk' ? 'selected' : ''}`} onClick={() => chooseFinish('Chalk')} aria-label="Chalk finish" aria-pressed={finish === 'Chalk'}><span /></button>
                 </div>
               </div>
               <div className="feature-list">
                 {features.map((feature) => <div className="feature-row" key={feature.label}><span>{feature.label}</span><span>{feature.value}</span><Check aria-hidden="true" /></div>)}
               </div>
-              <button className="button-primary buy-button" onClick={() => goTo('checkout')}>
+              <button className="button-primary buy-button" onClick={goToCheckout}>
                 Buy now <span>${(product.priceInCents / 100).toFixed(2)}</span><ArrowRight aria-hidden="true" />
               </button>
               <p className="secure-note"><LockKeyhole aria-hidden="true" /> Secure checkout · Free shipping · 30-day returns</p>
@@ -168,9 +195,10 @@ export default function Storefront() {
                 <>
                   <p className="eyebrow"><span className="eyebrow-dot" /> ALMOST YOURS</p>
                   <h1 className="checkout-title">A few details.<br /><span>Then, just listen.</span></h1>
-                  <div className="checkout-security"><LockKeyhole aria-hidden="true" /><span>Encrypted and secure checkout</span><span className="security-divider" /><ShieldCheck aria-hidden="true" /><span>Powered by Stripe</span></div>
-                  <div className="payment-surface">
-                    <StripeCheckout productId={product.id} onComplete={() => setComplete(true)} />
+                  <div className="payment-surface" aria-busy={checkoutLoading}>
+                    {checkoutLoading && <p className="checkout-loading">Preparing secure payment…</p>}
+                    {checkoutError && <div className="checkout-error"><p role="alert">{checkoutError}</p><button className="button-primary" onClick={goToCheckout}>Try again <ArrowRight aria-hidden="true" /></button></div>}
+                    {clientSecret && <StripeCheckout clientSecret={clientSecret} onComplete={() => { setClientSecret(null); setComplete(true) }} priceInCents={product.priceInCents} />}
                   </div>
                 </>
               )}
@@ -178,7 +206,7 @@ export default function Storefront() {
             <aside className="order-summary">
               <div className="summary-heading"><span>YOUR ORDER</span><span>01 ITEM</span></div>
               <div className="summary-product">
-                <div className="summary-image"><Image src="/aura-headphones.png" alt="Aura One headphones" fill sizes="120px" /></div>
+                <div className="summary-image"><Image src={productImage} alt={`Aura One ${finish} headphones`} fill sizes="120px" /></div>
                 <div className="summary-product-copy"><span className="summary-name">Aura One</span><span>Wireless headphones</span><span className="summary-finish">{finish} · Qty 1</span></div>
                 <span className="summary-price">${(product.priceInCents / 100).toFixed(2)}</span>
               </div>
